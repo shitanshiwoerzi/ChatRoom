@@ -27,8 +27,7 @@
 std::vector<std::string> user_list;  // local user list
 std::map<std::string, std::vector<std::string>> private_chats; // private chat log
 std::string current_private_chat;    // current target user in the private chat 
-//std::map<std::string, bool> private_chat_open; // private window state
-//std::map<std::string, int> unread_messages; // unread messages count
+std::map<std::string, int> unread_messages; // unread messages count
 bool is_private_chat_open = false;
 
 std::atomic<bool> running(true); // control the state of threads
@@ -80,15 +79,17 @@ void receive_messages(SOCKET client_socket) {
 				update_user_list(user_list_message);
 			}
 			else if ((message.find("[Private from ") == 0)) {
-				// 私聊消息格式: [Private from username]: message
-				size_t start = 14; // 跳过 "[Private from "
+				// format: [Private from username]: message
+				size_t start = 14; // skip "[Private from "
 				size_t end = message.find(']', start);
 				if (end != std::string::npos) {
 					std::string sender = message.substr(start, end - start);
-					std::string private_message = message.substr(end + 3); // 跳过 "]: "
+					std::string private_message = message.substr(end + 3); // skip "]: "
 					{
 						std::lock_guard<std::mutex> lock(data_mutex);
 						private_chats[sender].push_back("[Private]: " + private_message);
+
+						unread_messages[sender]++;
 					}
 				}
 			}
@@ -163,9 +164,22 @@ void render_user_list() {
 	{
 		std::lock_guard<std::mutex> lock(data_mutex);
 		for (const auto& user : user_list) {
-			if (ImGui::Selectable(user.c_str())) {
+			int unread_count = unread_messages[user];
+
+			// 显示用户列表条目
+			if (unread_count > 0) {
+				// 如果有未读消息，用红色标记并显示未读计数
+				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s (New)", user.c_str());
+			}
+			else {
+				// 正常显示用户
+				ImGui::Text("%s", user.c_str());
+			}
+
+			if (ImGui::IsItemClicked()) {
 				current_private_chat = user; // set current private chat
 				is_private_chat_open = true;
+				unread_messages[user] = 0;    // 清除未读消息计数
 			}
 		}
 	}
