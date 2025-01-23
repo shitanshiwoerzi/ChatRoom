@@ -1,4 +1,4 @@
-#include <winsock2.h>
+﻿#include <winsock2.h>
 #include <ws2tcpip.h>
 #include <iostream>
 #include <string>
@@ -6,12 +6,32 @@
 #include <vector>
 #include <mutex>
 #include <map>
+#include <random>
+#include <set>
 
 #pragma comment(lib, "Ws2_32.lib")
 
 std::vector<SOCKET> clients; // all clients
 std::map<SOCKET, std::string> user_map;  // clients' nickname
 std::mutex clients_mutex;    // to protect the list of client sockets
+
+std::vector<std::string> username_pool = { "Ryan", "Fox", "Jimmy", "Liam", "Emma", "Noah", "Olivia" }; // 用户名池
+std::set<std::string> assigned_usernames;
+
+std::string assign_random_username() {
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dist(0, username_pool.size() - 1);
+
+	// ensure the name is unique
+	std::string username;
+	do {
+		username = username_pool[dist(gen)];
+	} while (assigned_usernames.find(username) != assigned_usernames.end());
+
+	assigned_usernames.insert(username);
+	return username;
+}
 
 // send private messages
 void send_private_message(const std::string& target_user, const std::string& message) {
@@ -55,7 +75,7 @@ void broadcast_user_list() {
 
 void client_connection(SOCKET client_socket, int id) {
 	char buffer[1024] = { 0 };
-	std::string username = "Client" + std::to_string(id); // default username
+	std::string username = assign_random_username(); // default username
 
 	{
 		std::lock_guard<std::mutex> lock(clients_mutex);
