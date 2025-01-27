@@ -64,38 +64,51 @@ void update_user_list(const std::string& user_list_message) {
 	}
 }
 
+// Receive the sentence from the server
 void receive_messages(SOCKET client_socket) {
-	// Receive the sentence from the server
+	std::string recvBuffer;
 	while (running) {
 		char buffer[DEFAULT_BUFFER_SIZE] = { 0 };
-		int bytes_received = recv(client_socket, buffer, DEFAULT_BUFFER_SIZE - 1, 0);
+		int bytes_received = recv(client_socket, buffer, DEFAULT_BUFFER_SIZE, 0);
 		if (bytes_received > 0) {
-			buffer[bytes_received] = '\0'; // Null-terminate the received data
-			std::string message(buffer);
+			recvBuffer.append(buffer, bytes_received);
+			while (true) {
+				// find the \n
+				size_t pos = recvBuffer.find('\n');
+				if (pos == std::string::npos)
+				{
+					// if not, wait the next \n
+					break;
+				}
 
-			if (message.find("USER_LIST:") == 0) {
-				// update user list
-				std::string user_list_message = message.substr(10); // remove "USER_LIST:" prefix
-				update_user_list(user_list_message);
-			}
-			else if ((message.find("[Private from ") == 0)) {
-				// format: [Private from username]: message
-				size_t start = 14; // skip "[Private from "
-				size_t end = message.find(']', start);
-				if (end != std::string::npos) {
-					std::string sender = message.substr(start, end - start);
-					std::string private_message = message.substr(end + 3); // skip "]: "
-					{
-						std::lock_guard<std::mutex> lock(data_mutex);
-						private_chats[sender].push_back("[Private]: " + private_message);
+				// get a complete message 
+				std::string message = recvBuffer.substr(0, pos);
+				recvBuffer.erase(0, pos + 1); // remove the finished part
 
-						unread_messages[sender]++;
+				if (message.find("USER_LIST:") == 0) {
+					// update user list
+					std::string user_list_message = message.substr(10); // remove "USER_LIST:" prefix
+					update_user_list(user_list_message);
+				}
+				else if ((message.find("[Private from ") == 0)) {
+					// format: [Private from username]: message
+					size_t start = 14; // skip "[Private from "
+					size_t end = message.find(']', start);
+					if (end != std::string::npos) {
+						std::string sender = message.substr(start, end - start);
+						std::string private_message = message.substr(end + 3); // skip "]: "
+						{
+							std::lock_guard<std::mutex> lock(data_mutex);
+							private_chats[sender].push_back("[Private]: " + private_message);
+
+							unread_messages[sender]++;
+						}
 					}
 				}
-			}
-			else {
-				std::lock_guard<std::mutex> lock(data_mutex);
-				messages.push_back(std::string(buffer));
+				else {
+					std::lock_guard<std::mutex> lock(data_mutex);
+					messages.push_back(std::string(buffer));
+				}
 			}
 		}
 		else if (bytes_received == 0) {
@@ -165,21 +178,18 @@ void render_user_list() {
 		std::lock_guard<std::mutex> lock(data_mutex);
 		for (const auto& user : user_list) {
 			int unread_count = unread_messages[user];
-
-			// 显示用户列表条目
 			if (unread_count > 0) {
-				// 如果有未读消息，用红色标记并显示未读计数
+				// red font style to show the unread messages
 				ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "%s (New)", user.c_str());
 			}
 			else {
-				// 正常显示用户
 				ImGui::Text("%s", user.c_str());
 			}
 
 			if (ImGui::IsItemClicked()) {
 				current_private_chat = user; // set current private chat
 				is_private_chat_open = true;
-				unread_messages[user] = 0;    // 清除未读消息计数
+				unread_messages[user] = 0;    // remove all
 			}
 		}
 	}
@@ -245,7 +255,7 @@ void render_private_chat(SOCKET client_socket) {
 	std::string window_title = "Private Chat with " + current_private_chat;
 	ImGui::Begin(window_title.c_str(), &is_private_chat_open, ImGuiWindowFlags_AlwaysAutoResize);
 
-	// 显示私聊消息记录
+	// show private messages history
 	ImGui::BeginChild("PrivateChatHistory", ImVec2(400, 300), true);
 	{
 		std::lock_guard<std::mutex> lock(data_mutex);

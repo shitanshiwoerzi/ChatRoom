@@ -14,6 +14,7 @@
 std::vector<SOCKET> clients; // all clients
 std::map<SOCKET, std::string> user_map;  // clients' nickname
 std::mutex clients_mutex;    // to protect the list of client sockets
+std::mutex user_assign_mutex;
 
 std::vector<std::string> username_pool = { "Ryan", "Fox", "Jimmy", "Liam", "Emma", "Noah", "Olivia" }; // 用户名池
 std::set<std::string> assigned_usernames;
@@ -22,7 +23,8 @@ std::string assign_random_username() {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 	std::uniform_int_distribution<> dist(0, username_pool.size() - 1);
-
+	
+	std::lock_guard<std::mutex> lock(user_assign_mutex);
 	// ensure the name is unique
 	std::string username;
 	do {
@@ -36,9 +38,10 @@ std::string assign_random_username() {
 // send private messages
 void send_private_message(const std::string& target_user, const std::string& message) {
 	std::lock_guard<std::mutex> lock(clients_mutex);
+	std::string line = message + "\n";
 	for (auto it = user_map.begin(); it != user_map.end(); ++it) {
 		if (it->second == target_user) {
-			send(it->first, message.c_str(), static_cast<int>(message.size()), 0);
+			send(it->first, line.c_str(), static_cast<int>(line.size()), 0);
 			return;
 		}
 	}
@@ -46,9 +49,10 @@ void send_private_message(const std::string& target_user, const std::string& mes
 
 void broadcast_message(const std::string& message, SOCKET sender_socket) {
 	std::lock_guard<std::mutex> lock(clients_mutex);
+	std::string line = message + "\n";
 	for (SOCKET client : clients) {
 		if (client != sender_socket) {
-			send(client, message.c_str(), static_cast<int>(message.size()), 0);
+			send(client, line.c_str(), static_cast<int>(line.size()), 0);
 		}
 	}
 }
@@ -67,6 +71,9 @@ void broadcast_user_list() {
 		user_list_message.pop_back();
 	}
 
+	// add \n to divide different messages
+	user_list_message += "\n";
+
 	// send
 	for (SOCKET client : clients) {
 		send(client, user_list_message.c_str(), static_cast<int>(user_list_message.size()), 0);
@@ -82,8 +89,8 @@ void client_connection(SOCKET client_socket, int id) {
 		user_map[client_socket] = username; // store the username
 	}
 
-	// broadcast the new user join
-	broadcast_message(username + " has joined the chat.", client_socket);
+	//// broadcast the new user join
+	////broadcast_message(username + " has joined the chat.", client_socket);
 	broadcast_user_list();
 
 	bool stop = false;
