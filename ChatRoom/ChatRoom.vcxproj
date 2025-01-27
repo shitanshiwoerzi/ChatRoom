@@ -151,6 +151,7 @@
     <ClCompile Include="vendor\imgui_widgets.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="audioManager.h" />
     <ClInclude Include="vendor\backends\imgui_impl_dx11.h" />
     <ClInclude Include="vendor\backends\imgui_impl_win32.h" />
     <ClInclude Include="vendor\imconfig.h" />

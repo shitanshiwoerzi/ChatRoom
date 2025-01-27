@@ -19,6 +19,7 @@
 #include <d3d11.h>
 #include <tchar.h>
 #include <map>
+#include "audioManager.h"
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -29,6 +30,8 @@ std::map<std::string, std::vector<std::string>> private_chats; // private chat l
 std::string current_private_chat;    // current target user in the private chat 
 std::map<std::string, int> unread_messages; // unread messages count
 bool is_private_chat_open = false;
+std::string client_name; // name of this client
+audioManager audioM; // manage the sound effect
 
 std::atomic<bool> running(true); // control the state of threads
 std::vector<std::string> messages; // chat log
@@ -101,13 +104,18 @@ void receive_messages(SOCKET client_socket) {
 							std::lock_guard<std::mutex> lock(data_mutex);
 							private_chats[sender].push_back("[Private]: " + private_message);
 
+							audioM.play("audio/privateChatSE.mp3");
 							unread_messages[sender]++;
 						}
 					}
 				}
+				else if (message.find("Name:") == 0) {
+					client_name = message.substr(5); // remove "Name:" prefix
+				}
 				else {
 					std::lock_guard<std::mutex> lock(data_mutex);
 					messages.push_back(std::string(buffer));
+					audioM.play("audio/publicChatSE.mp3");
 				}
 			}
 		}
@@ -308,7 +316,8 @@ void render_chat_interface(SOCKET client_socket) {
 	ImGui::SetNextWindowSize(ImVec2(800, 600), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowPos(ImVec2(100, 100), ImGuiCond_FirstUseEver);
 
-	ImGui::Begin("Chat Room");
+	std::string title = "Chat Room -- " + client_name;
+	ImGui::Begin(title.c_str());
 
 	render_user_list();
 

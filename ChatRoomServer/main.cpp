@@ -89,8 +89,10 @@ void client_connection(SOCKET client_socket, int id) {
 		user_map[client_socket] = username; // store the username
 	}
 
+	std::string nameWithHead = "Name:" + username + "\n";
+	send(client_socket, nameWithHead.c_str(), static_cast<int>(nameWithHead.size()), 0);
 	//// broadcast the new user join
-	////broadcast_message(username + " has joined the chat.", client_socket);
+	//broadcast_message(username + " has joined the chat.", client_socket);
 	broadcast_user_list();
 
 	bool stop = false;
