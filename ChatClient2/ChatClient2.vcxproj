@@ -159,6 +159,17 @@
     <ClInclude Include="vendor\imstb_textedit.h" />
     <ClInclude Include="vendor\imstb_truetype.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="audio\IR.wav" />
+    <Media Include="audio\IR2.wav" />
+    <Media Include="audio\machinegun.mp3" />
+    <Media Include="audio\music.mp3" />
+    <Media Include="audio\privateChatSE.mp3" />
+    <Media Include="audio\publicChatSE.mp3" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fmod.dll" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

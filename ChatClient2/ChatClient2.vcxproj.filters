@@ -69,4 +69,19 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Media Include="audio\IR.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="audio\IR2.wav">
+      <Filter>Resource Files</Filter>
+    </Media>
+    <Media Include="audio\machinegun.mp3" />
+    <Media Include="audio\music.mp3" />
+    <Media Include="audio\privateChatSE.mp3" />
+    <Media Include="audio\publicChatSE.mp3" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fmod.dll" />
+  </ItemGroup>
 </Project>

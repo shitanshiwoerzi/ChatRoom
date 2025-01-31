@@ -16,7 +16,7 @@ std::map<SOCKET, std::string> user_map;  // clients' nickname
 std::mutex clients_mutex;    // to protect the list of client sockets
 std::mutex user_assign_mutex;
 
-std::vector<std::string> username_pool = { "Ryan", "Fox", "Jimmy", "Liam", "Emma", "Noah", "Olivia" }; // 用户名池
+std::vector<std::string> username_pool = { "Ryan", "Fox", "Jimmy", "Liam", "Emma", "Noah", "Olivia" }; // usernames pool
 std::set<std::string> assigned_usernames;
 
 std::string assign_random_username() {
